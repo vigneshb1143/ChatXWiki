@@ -1,0 +1,27 @@
+{{velocity}}
+#if ($services.security.authorization.hasAccess("admin", $doc.documentReference))
+  
+  #set ($apiKey = "SUPER_SECRET")
+  #set ($ingestionURL = "http://localhost:9000/ingest")
+
+  {{html clean="false"}}
+  <form action="$ingestionURL"
+        method="post"
+        onsubmit="return confirm('Are you sure you want to rebuild the knowledge base?');"
+        style="margin:1em 0;">
+    
+      <input type="hidden" name="Authorization" value="Bearer $apiKey" />
+
+      <button type="submit"
+              style="padding:10px 20px; background-color:#0066cc; color:white;
+                     font-size:1.1em; border:none; border-radius:6px;
+                     cursor:pointer;">
+        🔄 Rebuild Knowledge Base
+      </button>
+  </form>
+  {{/html}}
+
+#else
+  **You do not have permission to access this tool.**
+#end
+{{/velocity}}

@@ -1,0 +1,13 @@
+mcp[cli]
+langchain
+langchain-mcp-adapters
+langchain_openai
+langchain_weaviate
+langchain_text_splitters
+weaviate-client
+openai
+pydantic
+requests
+beautifulsoup4
+fastapi
+uvicorn[standard]

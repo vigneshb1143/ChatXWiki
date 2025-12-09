@@ -1,0 +1,101 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: xwiki_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: xwiki
+      POSTGRES_USER: xwiki
+      POSTGRES_PASSWORD: xwiki_passw0rd
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U xwiki"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - xwiki-net
+
+  xwiki:
+    image: xwiki:stable-postgres-tomcat
+    container_name: xwiki
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_USER: xwiki
+      DB_DATABASE: xwiki
+      DB_PASSWORD: xwiki_passw0rd
+      XWIKI_ADMIN_PASSWORD: admin
+      XWIKI_DEFAULT_LANGUAGE: en
+    ports:
+      - "8080:8080"
+    volumes:
+      - xwiki-data:/usr/local/xwiki
+    networks:
+      - xwiki-net
+
+  weaviate:
+    image: semitechnologies/weaviate:latest
+    container_name: weaviate
+    restart: unless-stopped
+    command:
+        - --host
+        - 0.0.0.0
+        - --port
+        - '8000'
+        - --scheme
+        - http
+    healthcheck:
+        # Checks the Weaviate ready endpoint on its internal port 8000
+        test: ["CMD-SHELL", "wget -q -O - http://localhost:8000/v1/.well-known/ready || exit 1"]
+        interval: 5s
+        timeout: 10s
+        retries: 10 # Increase retries to be safe
+        start_period: 30s # Give Weaviate enough time to load the DB
+    ports:
+      - "8000:8000"     # HTTP API
+      - "50051:50051"   # GRPC API (Required for V4 Client)
+    environment:
+      # run without builtin text vectorizer so we push vectors from MCP
+      DEFAULT_VECTORIZER_MODULE: "none"
+      QUERY_DEFAULTS_LIMIT: 20
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"
+      # optional: set internal persistence path
+      PERSISTENCE_DATA_PATH: /var/lib/weaviate
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    # (no depends_on needed)
+    networks:
+      - xwiki-net
+    
+  mcp:
+    build:
+      context: mcp
+      dockerfile: Dockerfile
+    container_name: mcp
+    restart: unless-stopped
+    ports:
+      - "8050:8050"      # FastMCP HTTP transport (for testing)
+      - "9000:9000"
+      - "9100:9100"
+    env_file:
+     - ./mcp/.env
+    depends_on:
+      weaviate:
+        condition: service_healthy
+    volumes:
+      - ./mcp:/app
+    networks:
+      - xwiki-net
+
+volumes:
+  pgdata:
+  xwiki-data:
+  weaviate_data:
+
+networks:
+  xwiki-net:
