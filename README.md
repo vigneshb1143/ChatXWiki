@@ -30,9 +30,7 @@ It combines:
 
 ## 🏗️ Architecture Overview
 
-Below is your architecture diagram (replace with your actual JPG):
-
-![ChatXWiki Architecture](./architecture.jpg)
+![ChatXWiki Architecture](images/Project_Architecture.jpg)
 
 ---
 
